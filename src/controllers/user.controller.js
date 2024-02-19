@@ -151,8 +151,8 @@ const logoutUser = asyncHandler( async(req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1
             }
         },
         {
@@ -433,6 +433,35 @@ const getWatchHistory = asyncHandler( async(req, res) => {
     )
 })
 
+const uploadVideo = asyncHandler( async(req, res) => {
+    const videoFilePath = req.file?.path
+
+    if(!videoFilePath){
+        throw new ApiError(400, "Video file is missing.")
+    }
+
+    const video = await uploadOnCloudinary(videoFilePath)
+
+    if(!video.url){
+        throw new ApiError(401, "Error while uploading video.")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                video: video.url
+            }
+        }, {new: true}
+    ).select(" --password ")
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(400, {}, "Video uploaded successfully.")
+    )
+})
+
 export {
     registerUser,
     loginUser,
@@ -444,5 +473,6 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
+    uploadVideo
 }
